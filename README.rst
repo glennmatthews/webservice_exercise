@@ -13,16 +13,44 @@ Installation
   pip install -r requirements.txt
   python manage.py runserver
 
-The server will run at ``127.0.0.1:8000``. Try the following queries:
+The server will run at ``127.0.0.1:8000``.
 
+The provided database (``db.sqlite3``) includes examples of:
+- blacklisting by domain name
+- whitelisting a subdomain of an otherwise blacklisted domain
+- blacklisting and whitelisting specific ports on a given domain
+- blacklisting and whitelisting specific paths on a given domain/port
+- blacklisting specific HTTP GET query parameters on a given domain/port/path
+
+Try the following queries to demonstrate this functionality:
+
+- http://127.0.0.1:8000/urlinfo/1/example.com/ - returns ``{safe: true}``
+  because there's no database entry for example.com
 - http://127.0.0.1:8000/urlinfo/1/allgood.here/ - returns ``{safe: true}``
+  because there's a database entry for allgood.here but it's whitelisted (not flagged as unsafe)
 - http://127.0.0.1:8000/urlinfo/1/malware.bad/ - returns ``{safe: false}``
+  because there's a blacklist database entry for malware.bad.
+  Similarly:
+
+    - http://127.0.0.1:8000/urlinfo/1/malware.bad:443 also returns ``{safe: false}``
+      because the entire domain is blacklisted, regardless of port number.
+    - http://127.0.0.1:8000/urlinfo/1/malware.bad/some/path/here also returns ``{safe: false}``
+      because the entire domain is blacklisted, regardless of directory path.
+
+- http://127.0.0.1:8000/urlinfo/1/all.malware.bad/ - returns ``{safe: false}``
+  because there's a blacklist database entry for its parent domain malware.bad
+- http://127.0.0.1:8000/urlinfo/1/not.all.malware.bad/ - returns ``{safe: true}``
+  because there's a whitelist database entry for this specific subdomain
 - http://127.0.0.1:8000/urlinfo/1/mixed.bag:1234/- returns ``{safe: true}``
+  because there's a whitelist database entry for this specific port on this domain
 - http://127.0.0.1:8000/urlinfo/1/mixed.bag:666/- returns ``{safe: false}``
+  because there's a blacklist database entry for this specific port on this domain
 - http://127.0.0.1:8000/urlinfo/1/mixed.bag/totally/safe/path - returns ``{safe: true}``
+  because there's a whitelist database entry for this path on this domain (and implied port 80)
 - http://127.0.0.1:8000/urlinfo/1/mixed.bag/totally/unsafe/path - returns ``{safe: false}``
-- http://127.0.0.1:8000/urlinfo/1/mixed.bag/files - returns ``{safe: true}``
+  because there's a blacklist database entry for this path on this domain (and implied port 80)
 - http://127.0.0.1:8000/urlinfo/1/mixed.bag/files?unsafe=true&malware=true - returns ``{safe: false}``
+  because there's a blacklist database entry for these query parameters on this domain/port/path
 
 You can also run the included test suite with ``python manage.py test url_lookup -v 2``
 

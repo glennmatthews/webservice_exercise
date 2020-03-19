@@ -30,19 +30,37 @@ def urlinfo_v1(request, hostname_and_port, path=""):
     m = re.match(r"^([^:]+)(?::(\d+))?$", hostname_and_port)
     if not m:
         return HttpResponseBadRequest(reason="Malformed domain-name and/or port")
-    hostname = m.group(1)
+    domain_name = m.group(1)
     port_number = m.group(2) or 80
 
     # First, do we have the whole domain flagged as unsafe?
     try:
-        domain = Domain.objects.get(domain_name=hostname)
+        domain = Domain.objects.get(domain_name=domain_name)
     except Domain.DoesNotExist:
-        # No entries for this domain, so we must assume it's safe
-        # TODO: check for match against parent domain?
-        return JsonResponse({"safe": True})
+        domain = None
 
-    if domain.unsafe:
+    if domain is not None and domain.unsafe:
         return JsonResponse({"safe": False})
+
+    # If there is no entry for my.subdomain.example.com, but there is an entry
+    # for its parent domains subdomain.example.com or example.com, and the
+    # closest parent domain is globally blacklisted, then blacklist the
+    # subdomain as well. However, we do NOT inherit more specific blacklists
+    # (port, path, query) from a parent domain.
+    if domain is None and '.' in domain_name:
+        _, parent_domain = domain_name.split('.', 1)
+        while '.' in parent_domain:
+            try:
+                parent = Domain.objects.get(domain_name=parent_domain)
+                if parent.unsafe:
+                    return JsonResponse({"safe": False})
+            except Domain.DoesNotExist:
+                # Try the next level of generality
+                _, parent_domain = parent_domain.split('.', 1)
+
+    if not domain:
+        # No entries for this domain, so we must assume it's safe
+        return JsonResponse({"safe": True})
 
     # The domain isn't flagged as globally unsafe.
     # Is the particular port in use on this domain flagged?

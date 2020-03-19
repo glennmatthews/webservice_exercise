@@ -63,7 +63,6 @@ class UrlinfoV1Tests(TestCase):
         Domain.objects.create(domain_name="malware.bad")
         for url in [
             self.get_url("malware.bad"),
-            # TODO self.get_url("subdomain.malware.bad"),
             self.get_url("malware.bad:8080"),
             self.get_url("malware.bad", "path/is/irrelevant"),
             self.get_url("malware.bad", "path/is/irrelevant", {"param": "irrelevant"}),
@@ -77,6 +76,16 @@ class UrlinfoV1Tests(TestCase):
             self.get_url("example.com", "", {"domain_name": "malware.bad"}),
         ]:
             self.assert_safe(url)
+
+    def test_domain_blacklist_includes_subdomains(self):
+        """Blacklisting an entire domain includes its subdomains unless whitelisted."""
+        # Subdomains are blacklisted as well unless explicitly whitelisted
+        Domain.objects.create(domain_name="malware.bad")
+        Domain.objects.create(domain_name="not.all.malware.bad", unsafe=False)
+        self.assert_unsafe(self.get_url("malware.bad"))
+        self.assert_unsafe(self.get_url("all.malware.bad"))
+        self.assert_safe(self.get_url("not.all.malware.bad"))
+        self.assert_unsafe(self.get_url("yes.all.malware.bad"))
 
     def test_match_domain_and_port(self):
         """A specific port on a domain can be blacklisted."""
