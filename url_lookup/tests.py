@@ -60,7 +60,7 @@ class UrlinfoV1Tests(TestCase):
 
     def test_match_domain(self):
         """An entire domain can be blacklisted."""
-        Domain.objects.create(domain_name="malware.bad", unsafe=True)
+        Domain.objects.create(domain_name="malware.bad")
         for url in [
             self.get_url("malware.bad"),
             # TODO self.get_url("subdomain.malware.bad"),
@@ -81,7 +81,7 @@ class UrlinfoV1Tests(TestCase):
     def test_match_domain_and_port(self):
         """A specific port on a domain can be blacklisted."""
         domain = Domain.objects.create(domain_name="mixed.bag", unsafe=False)
-        Port.objects.create(domain=domain, port="666", unsafe=True)
+        Port.objects.create(domain=domain, port="666")
 
         # The domain as a whole is not blacklisted
         self.assert_safe(self.get_url("mixed.bag"))
@@ -103,7 +103,7 @@ class UrlinfoV1Tests(TestCase):
         """A specific path on a domain can be blacklisted."""
         domain = Domain.objects.create(domain_name="mixed.bag", unsafe=False)
         port = Port.objects.create(domain=domain, unsafe=False) # port defaults to 80
-        Path.objects.create(port=port, path="files/malware", unsafe=True)
+        Path.objects.create(port=port, path="files/malware")
 
         # The domain and port as a whole are not blacklisted
         self.assert_safe(self.get_url("mixed.bag"))
