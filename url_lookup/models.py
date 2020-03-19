@@ -1,4 +1,6 @@
 from django.db import models
+from django.http import QueryDict
+from django.utils.http import urlencode
 
 
 class Domain(models.Model):
@@ -44,3 +46,9 @@ class Query(models.Model):
                                       self.path.path,
                                       self.query,
                                       " 👿" if self.unsafe else "")
+
+    def save(self, *args, **kwargs):
+        """Ensure the query string is normalized before saving it."""
+        qd = QueryDict(self.query)
+        self.query = urlencode(sorted(qd.items(), key=lambda tup: tup[0]))
+        super().save(*args, **kwargs)

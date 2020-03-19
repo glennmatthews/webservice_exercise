@@ -117,3 +117,29 @@ class UrlinfoV1Tests(TestCase):
         # The path is mapped to a specific domain and port
         self.assert_safe(self.get_url("example.com", "files/malware"))
         self.assert_safe(self.get_url("mixed.bag:8080", "files/malware"))
+
+    def test_match_query(self):
+        """A specific GET query on a specific path can be blacklisted."""
+        domain = Domain.objects.create(domain_name="mixed.bag", unsafe=False)
+        port = Port.objects.create(domain=domain, unsafe=False)
+        path = Path.objects.create(port=port, path="files", unsafe=False)
+        Query.objects.create(path=path, query="unsafe=true&malware=true")
+
+        # The domain, port, and path are not blacklisted
+        self.assert_safe(self.get_url("mixed.bag"))
+        self.assert_safe(self.get_url("mixed.bag:80"))
+        self.assert_safe(self.get_url("mixed.bag:80", "files"))
+
+        # But matches for this query on this path are blacklisted
+        self.assert_unsafe(self.get_url("mixed.bag", "files",
+                                        {"malware": "true", "unsafe": "true"}))
+        # Ordering of query parameters shouldn't matter
+        self.assert_unsafe(self.get_url("mixed.bag", "files",
+                                        {"unsafe": "true", "malware": "true"}))
+
+        # Partial matches do not get blacklisted
+        self.assert_safe(self.get_url("mixed.bag", "files", {"unsafe": "true"}))
+
+        # TODO - extra parameters shouldn't avoid blacklisting?
+        # self.assert_unsafe(self.get_url("mixed.bag", "files",
+        #                                 {"unsafe": "true", "malware": "true", "extra": 0}))

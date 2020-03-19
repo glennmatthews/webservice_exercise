@@ -21,6 +21,8 @@ The server will run at ``127.0.0.1:8000``. Try the following queries:
 - http://127.0.0.1:8000/urlinfo/1/mixed.bag:666/- returns ``{safe: false}``
 - http://127.0.0.1:8000/urlinfo/1/mixed.bag/totally/safe/path - returns ``{safe: true}``
 - http://127.0.0.1:8000/urlinfo/1/mixed.bag/totally/unsafe/path - returns ``{safe: false}``
+- http://127.0.0.1:8000/urlinfo/1/mixed.bag/files - returns ``{safe: true}``
+- http://127.0.0.1:8000/urlinfo/1/mixed.bag/files?unsafe=true&malware=true - returns ``{safe: false}``
 
 You can also run the included test suite with ``python manage.py test url_lookup -v 2``
 

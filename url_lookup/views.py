@@ -3,6 +3,7 @@ import logging
 import re
 
 from django.http import JsonResponse, HttpResponseNotAllowed, HttpResponseBadRequest
+from django.utils.http import urlencode
 
 from .models import Domain, Port, Path, Query
 
@@ -68,7 +69,17 @@ def urlinfo_v1(request, hostname_and_port, path=""):
     if path_obj.unsafe:
         return JsonResponse({"safe": False})
 
-    # TODO: query matching
+    # Normalize the query args to an alphabetically ordered string
+    query = urlencode(sorted(request.GET.items(), key=lambda tup: tup[0]))
 
+    try:
+        query_obj = Query.objects.get(path=path_obj, query=query)
+    except Query.DoesNotExist:
+        # No entries for this query, so we must assume it's safe
+        # TODO: check for partial matches?
+        return JsonResponse({"safe": True})
+
+    if query_obj.unsafe:
+        return JsonResponse({"safe": False})
 
     return JsonResponse({"safe": True})
